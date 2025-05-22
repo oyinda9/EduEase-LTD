@@ -17,11 +17,12 @@ import subjectRoute from "./routes/subjectRoute";
 import attendRoute from "./routes/attendRoute";
 import ExamRoutes from "./routes/ExamRoutes";
 import PaymentRoute from  "./routes/PaymentRoute"
+import SchoolRoutes from "./routes/SchoolsRoutes"
 
 
 const prisma = new PrismaClient();
 const app = express();
-const port = 5003;
+const port = 5000;
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -39,9 +40,10 @@ app.use('/attendance', attendRoute);
 app.use('/exam', ExamRoutes);
 app.use('/payment',PaymentRoute)
 app.use("/auth", AuthRoutes);
+app.use("/school",SchoolRoutes)
 // Health check endpoint
 app.get("/", (req: Request, res: Response) => {
-  res.send("School Management System Backend is running!");
+  res.send("EduEase backend is running");
 });
 
 // Start the server
