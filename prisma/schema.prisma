@@ -3,179 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-model Admin {
-  id       String @id @default(uuid())
-  username String @unique
-  role     Role   @default(ADMIN)
-  password String
-}
-
-model Student {
-  id          String       @id @default(uuid())
-  username    String       @unique
-  name        String
-  surname     String
-  email       String?      @unique
-  phone       String?      @unique
-  address     String
-  img         String?
-  bloodType   String
-  sex         UserSex
-  createdAt   DateTime     @default(now())
-  parentId    String?
-  classId     Int
-  birthday    DateTime
-  role        Role         @default(STUDENT)
-  attendances Attendance[]
-  payments    Payment[]
-  results     Result[]
-  class       Class        @relation(fields: [classId], references: [id])
-  parent      Parent?      @relation(fields: [parentId], references: [id])
-  subject     Subject[]    @relation("StudentSubjects")
-}
-
-model Teacher {
-  id        String    @id @default(uuid())
-  username  String    @unique
-  name      String
-  surname   String
-  email     String?   @unique
-  phone     String?   @unique
-  address   String
-  img       String?
-  bloodType String
-  sex       UserSex
-  createdAt DateTime  @default(now())
-  birthday  DateTime
-  role      Role      @default(TEACHER)
-  classes   Class[]
-  lessons   Lesson[]
-  subjects  Subject[] @relation("SubjectToTeacher")
-}
-
-model Parent {
-  id        String    @id @default(uuid())
-  username  String    @unique
-  name      String
-  surname   String
-  email     String?   @unique
-  phone     String    @unique
-  address   String
-  createdAt DateTime  @default(now())
-  role      Role      @default(USER)
-  payments  Payment[]
-  students  Student[]
-}
-
-model Class {
-  id            Int            @id @default(autoincrement())
-  name          String         @unique
-  capacity      Int
-  supervisorId  String?
-  announcements Announcement[]
-  supervisor    Teacher?       @relation(fields: [supervisorId], references: [id])
-  lessons       Lesson[]
-  students      Student[]
-}
-
-model Subject {
-  id       Int       @id @default(autoincrement())
-  name     String    @unique
-  exams    Exam[]
-  lessons  Lesson[]
-  Result   Result[]
-  students Student[] @relation("StudentSubjects")
-  teachers Teacher[] @relation("SubjectToTeacher")
-}
-
-model Lesson {
-  id          Int          @id @default(autoincrement())
-  name        String
-  day         Day
-  startTime   DateTime
-  endTime     DateTime
-  subjectId   Int
-  classId     Int
-  teacherId   String
-  assignments Assignment[]
-  class       Class        @relation(fields: [classId], references: [id])
-  subject     Subject      @relation(fields: [subjectId], references: [id])
-  teacher     Teacher      @relation(fields: [teacherId], references: [id])
-}
-
-model Exam {
-  id        Int      @id @default(autoincrement())
-  subjectId Int
-  score     Int
-  subject   Subject  @relation(fields: [subjectId], references: [id])
-  results   Result[]
-}
-
-model Assignment {
-  id        Int      @id @default(autoincrement())
-  title     String
-  startDate DateTime
-  dueDate   DateTime
-  lessonId  Int
-  lesson    Lesson   @relation(fields: [lessonId], references: [id])
-}
-
-model Result {
-  id           Int     @id @default(autoincrement())
-  score        Float
-  examId       Int?
-  examScore    Int?
-  totalScore   Float?
-  averageScore Float?
-  studentId    String
-  subjectId    Int
-  assignment   Float   @default(0)
-  classwork    Float   @default(0)
-  midterm      Float   @default(0)
-  attendance   Float   @default(0)
-  exam         Exam?   @relation(fields: [examId], references: [id])
-  student      Student @relation(fields: [studentId], references: [id])
-  subject      Subject @relation(fields: [subjectId], references: [id])
-}
-
-model Attendance {
-  id        Int      @id @default(autoincrement())
-  date      DateTime
-  present   Boolean
-  studentId String
-  student   Student  @relation(fields: [studentId], references: [id])
-}
-
-model Event {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  createdAt   DateTime @default(now())
-}
-
-model Announcement {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  date        DateTime
-  classId     Int?
-  class       Class?   @relation(fields: [classId], references: [id])
-}
-
-model Payment {
-  id         String   @id @default(uuid())
-  studentId  String
-  parentId   String
-  amountPaid Float
-  receiptUrl String
-  verified   Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  parent     Parent   @relation(fields: [parentId], references: [id])
-  student    Student  @relation(fields: [studentId], references: [id])
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
 }
 
 enum UserSex {
@@ -196,4 +26,214 @@ enum Day {
   WEDNESDAY
   THURSDAY
   FRIDAY
+}
+
+model Admin {
+  id       String @id @default(uuid())
+  username String @unique
+  password String
+  role     Role   @default(ADMIN)
+}
+
+model School {
+  id             String         @id @default(uuid())
+  name           String         @unique
+  address        String
+  logo           String?
+  createdAt      DateTime       @default(now())
+  students       Student[]
+  teachers       Teacher[]
+  parents        Parent[]
+  classes        Class[]
+  announcements  Announcement[]
+}
+
+model Student {
+  id          String       @id @default(uuid())
+  username    String       @unique
+  name        String
+  surname     String
+  email       String?      @unique
+  phone       String?      @unique
+  address     String
+  img         String?
+  bloodType   String
+  sex         UserSex
+  createdAt   DateTime     @default(now())
+  birthday    DateTime
+  role        Role         @default(STUDENT)
+  classId     Int
+  parentId    String?
+  schoolId    String
+
+  class       Class        @relation(fields: [classId], references: [id])
+  parent      Parent?      @relation(fields: [parentId], references: [id])
+  school      School       @relation(fields: [schoolId], references: [id])
+  attendances Attendance[]
+  payments    Payment[]
+  results     Result[]
+  subject     Subject[]    @relation("StudentSubjects")
+}
+
+model Teacher {
+  id        String    @id @default(uuid())
+  username  String    @unique
+  name      String
+  surname   String
+  email     String?   @unique
+  phone     String?   @unique
+  address   String
+  img       String?
+  bloodType String
+  sex       UserSex
+  birthday  DateTime
+  createdAt DateTime  @default(now())
+  role      Role      @default(TEACHER)
+  isVisibleOnExtraLessons Boolean @default(false)
+  extraLessonContact      String?
+
+  schoolId  String
+  school    School    @relation(fields: [schoolId], references: [id])
+  classes   Class[]
+  lessons   Lesson[]
+  subjects  Subject[] @relation("SubjectToTeacher")
+}
+
+model Parent {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  name      String
+  surname   String
+  email     String?  @unique
+  phone     String   @unique
+  address   String
+  createdAt DateTime @default(now())
+  role      Role     @default(USER)
+
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id])
+  payments  Payment[]
+  students  Student[]
+}
+
+model Class {
+  id           Int            @id @default(autoincrement())
+  name         String
+  capacity     Int
+  supervisorId String?
+  schoolId     String
+
+  supervisor   Teacher?       @relation(fields: [supervisorId], references: [id])
+  school       School         @relation(fields: [schoolId], references: [id])
+  announcements Announcement[]
+  lessons      Lesson[]
+  students     Student[]
+}
+
+model Subject {
+  id        Int       @id @default(autoincrement())
+  name      String
+
+  exams     Exam[]
+  lessons   Lesson[]
+  Result    Result[]
+  students  Student[] @relation("StudentSubjects")
+  teachers  Teacher[] @relation("SubjectToTeacher")
+}
+
+model Lesson {
+  id         Int        @id @default(autoincrement())
+  name       String
+  day        Day
+  startTime  DateTime
+  endTime    DateTime
+  subjectId  Int
+  classId    Int
+  teacherId  String
+
+  subject    Subject    @relation(fields: [subjectId], references: [id])
+  class      Class      @relation(fields: [classId], references: [id])
+  teacher    Teacher    @relation(fields: [teacherId], references: [id])
+  assignments Assignment[]
+}
+
+model Exam {
+  id        Int      @id @default(autoincrement())
+  subjectId Int
+  score     Int
+
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  results   Result[]
+}
+
+model Assignment {
+  id        Int      @id @default(autoincrement())
+  title     String
+  startDate DateTime
+  dueDate   DateTime
+  lessonId  Int
+
+  lesson    Lesson   @relation(fields: [lessonId], references: [id])
+}
+
+model Result {
+  id           Int     @id @default(autoincrement())
+  score        Float
+  examId       Int?
+  examScore    Int?
+  totalScore   Float?
+  averageScore Float?
+  assignment   Float   @default(0)
+  classwork    Float   @default(0)
+  midterm      Float   @default(0)
+  attendance   Float   @default(0)
+  aiSuggestion String?
+
+  studentId    String
+  subjectId    Int
+
+  exam         Exam?   @relation(fields: [examId], references: [id])
+  student      Student @relation(fields: [studentId], references: [id])
+  subject      Subject @relation(fields: [subjectId], references: [id])
+}
+
+model Attendance {
+  id        Int      @id @default(autoincrement())
+  date      DateTime
+  present   Boolean
+  studentId String
+
+  student   Student  @relation(fields: [studentId], references: [id])
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+}
+
+model Announcement {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  date        DateTime
+  classId     Int?
+  schoolId    String?
+
+  class       Class?   @relation(fields: [classId], references: [id])
+  school      School?  @relation(fields: [schoolId], references: [id])
+}
+
+model Payment {
+  id         String   @id @default(uuid())
+  studentId  String
+  parentId   String
+  amountPaid Float
+  receiptUrl String
+  verified   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  student    Student  @relation(fields: [studentId], references: [id])
+  parent     Parent   @relation(fields: [parentId], references: [id])
 }
