@@ -15,7 +15,7 @@ const library_1 = require("@prisma/client/runtime/library");
 const prisma = new client_1.PrismaClient();
 const createTeacher = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { username, name, surname, email, phone, address, img, bloodType, sex, birthday, subjectIds, lessonIds, classIds, } = req.body;
+        const { username, name, surname, email, phone, address, img, bloodType, sex, birthday, subjectIds, lessonIds, classIds, schoolId } = req.body;
         // Check if the username already exists
         const existingTeacher = yield prisma.teacher.findUnique({
             where: { username },
@@ -34,7 +34,7 @@ const createTeacher = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }
         // Create teacher
         const teacher = yield prisma.teacher.create({
-            data: Object.assign(Object.assign(Object.assign({ id: crypto.randomUUID(), username,
+            data: Object.assign(Object.assign(Object.assign(Object.assign({ id: crypto.randomUUID(), username,
                 name,
                 surname,
                 email,
@@ -47,7 +47,9 @@ const createTeacher = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 ? { lessons: { connect: lessonIds.map((id) => ({ id })) } }
                 : {})), (classIds && classIds.length > 0
                 ? { classes: { connect: classIds.map((id) => ({ id })) } }
-                : {})),
+                : {})), { school: {
+                    connect: { id: schoolId }, // Make sure you have schoolId available
+                } }),
         });
         res.status(201).json(teacher);
     }

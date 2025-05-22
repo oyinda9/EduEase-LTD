@@ -13,7 +13,7 @@ exports.deleteParent = exports.updateParent = exports.getParentById = exports.ge
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const createParent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { username, name, surname, email, phone, address } = req.body;
+    const { username, name, surname, email, phone, address, schoolId } = req.body;
     try {
         const parent = yield prisma.parent.create({
             data: {
@@ -24,6 +24,9 @@ const createParent = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 email,
                 phone,
                 address,
+                school: {
+                    connect: { id: schoolId }, // Make sure you have schoolId available
+                },
             },
         });
         res.status(201).json(parent);
@@ -52,30 +55,34 @@ const getAllParents = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 exports.getAllParents = getAllParents;
 const getParentById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
-    try {
-        const parent = yield prisma.parent.findUnique({
-            where: { id },
-            include: { students: true },
-        });
-        if (!parent)
-            res.status(404).json({ error: "Parent not found" });
-        res.status(200).json(parent);
+    const { schoolId } = req.query; // or wherever you get it from
+    if (!schoolId || typeof schoolId !== "string") {
+        res.status(400).json({ error: "Missing or invalid schoolId" });
         return;
     }
+    try {
+        const parent = yield prisma.parent.findFirst({
+            where: { id, schoolId },
+            include: { students: true },
+        });
+        if (!parent) {
+            res.status(404).json({ error: "Parent not found" });
+            return;
+        }
+        res.status(200).json(parent);
+    }
     catch (error) {
-        res
-            .status(500)
-            .json({ error: "Failed to fetch parent", details: error.message });
+        res.status(500).json({ error: "Failed to fetch parent", details: error.message });
     }
 });
 exports.getParentById = getParentById;
 const updateParent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
-    const { username, name, surname, email, phone, address } = req.body;
+    const { username, name, surname, email, phone, address, schoolId } = req.body;
     try {
         const parent = yield prisma.parent.update({
             where: { id },
-            data: { username, name, surname, email, phone, address },
+            data: { username, name, surname, email, phone, address, schoolId },
         });
         res.status(200).json(parent);
     }
