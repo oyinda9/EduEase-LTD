@@ -24,6 +24,7 @@ export const createTeacher = async (
       subjectIds,
       lessonIds,
       classIds,
+    schoolId
     } = req.body;
 
     // Check if the username already exists
@@ -67,6 +68,9 @@ export const createTeacher = async (
         ...(classIds && classIds.length > 0
           ? { classes: { connect: classIds.map((id: string) => ({ id })) } }
           : {}),
+          school: {
+    connect: { id: schoolId }, // Make sure you have schoolId available
+  },
       },
     });
 

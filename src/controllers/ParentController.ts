@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 export const createParent = async (req: Request, res: Response) => {
-  const { username, name, surname, email, phone, address } = req.body;
+  const { username, name, surname, email, phone, address ,schoolId } = req.body;
 
   try {
     const parent = await prisma.parent.create({
@@ -15,6 +15,9 @@ export const createParent = async (req: Request, res: Response) => {
         email,
         phone,
         address,
+         school: {
+    connect: { id: schoolId }, // Make sure you have schoolId available
+  },
       },
     });
 
@@ -41,37 +44,41 @@ export const getAllParents = async (req: Request, res: Response) => {
   }
 };
 
-export const getParentById = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+export const getParentById = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
+  const { schoolId } = req.query; // or wherever you get it from
+
+  if (!schoolId || typeof schoolId !== "string") {
+     res.status(400).json({ error: "Missing or invalid schoolId" });
+     return
+  }
 
   try {
-    const parent = await prisma.parent.findUnique({
-      where: { id },
+    const parent = await prisma.parent.findFirst({
+      where: { id, schoolId },
       include: { students: true },
     });
 
-    if (!parent) res.status(404).json({ error: "Parent not found" });
+    if (!parent) {
+       res.status(404).json({ error: "Parent not found" });
+       return
+    }
 
     res.status(200).json(parent);
-    return;
   } catch (error: any) {
-    res
-      .status(500)
-      .json({ error: "Failed to fetch parent", details: error.message });
+    res.status(500).json({ error: "Failed to fetch parent", details: error.message });
   }
 };
 
+
 export const updateParent = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { username, name, surname, email, phone, address } = req.body;
+  const { username, name, surname, email, phone, address ,schoolId } = req.body;
 
   try {
     const parent = await prisma.parent.update({
       where: { id },
-      data: { username, name, surname, email, phone, address },
+      data: { username, name, surname, email, phone, address,schoolId },
     });
 
     res.status(200).json(parent);

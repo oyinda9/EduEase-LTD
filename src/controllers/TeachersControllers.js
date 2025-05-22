@@ -9,8 +9,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteTeacher = exports.updateTeacher = exports.getTeacherById = exports.getTeachers = exports.createTeacher = void 0;
+exports.assignClassesAndSubjectsToTeacher = exports.deleteTeacher = exports.updateTeacher = exports.getTeacherById = exports.getTeachers = exports.createTeacher = void 0;
 const client_1 = require("@prisma/client");
+const library_1 = require("@prisma/client/runtime/library");
 const prisma = new client_1.PrismaClient();
 const createTeacher = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -147,9 +148,9 @@ const updateTeacher = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
     catch (error) {
         console.error("Error updating teacher:", error);
-        if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
-            if (error.code === "P2025") {
-                res.status(404).json({ error: "Teacher not found" });
+        if (error instanceof library_1.PrismaClientKnownRequestError) {
+            if (error.code === 'P2025') {
+                res.status(404).json({ error: 'Teacher not found' });
                 return;
             }
         }
@@ -169,3 +170,39 @@ const deleteTeacher = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
 });
 exports.deleteTeacher = deleteTeacher;
+const assignClassesAndSubjectsToTeacher = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { teacherId, classes, subjectIds } = req.body;
+        // Ensure teacherId, classes, and subjectIds are provided
+        if (!teacherId || (!Array.isArray(classes) && !Array.isArray(subjectIds))) {
+            res.status(400).json({ error: "Invalid request data" });
+            return;
+        }
+        // Update the teacher to assign new classes and subjects without removing old ones
+        const teacher = yield prisma.teacher.update({
+            where: { id: teacherId },
+            data: {
+                // Add new classes to teacher (does not remove existing classes)
+                classes: { connect: classes === null || classes === void 0 ? void 0 : classes.map((classIds) => ({
+                        id: classIds,
+                    })),
+                },
+                // Add new subjects to teacher (does not remove existing subjects)
+                subjects: {
+                    connect: subjectIds === null || subjectIds === void 0 ? void 0 : subjectIds.map((subjectId) => ({
+                        id: subjectId,
+                    })),
+                },
+            },
+        });
+        res.status(200).json({
+            message: "Classes and subjects successfully assigned to teacher",
+            teacher,
+        });
+    }
+    catch (error) {
+        console.error("Error assigning classes and subjects:", error);
+        res.status(500).json({ error: "Failed to assign classes and subjects to teacher" });
+    }
+});
+exports.assignClassesAndSubjectsToTeacher = assignClassesAndSubjectsToTeacher;

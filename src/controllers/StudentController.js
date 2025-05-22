@@ -16,7 +16,7 @@ const prisma = new client_1.PrismaClient();
 const getAllStudents = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const students = yield prisma.student.findMany({
-            include: { parent: true, class: true },
+            include: { parent: true, class: true, subject: true },
         });
         res.json(students);
     }
@@ -31,7 +31,7 @@ const getStudentById = (req, res) => __awaiter(void 0, void 0, void 0, function*
     try {
         const student = yield prisma.student.findUnique({
             where: { id },
-            include: { parent: true, class: true },
+            include: { parent: true, class: true, subject: true },
         });
         if (!student) {
             res.status(404).json({ error: "Student not found" });
@@ -46,7 +46,8 @@ const getStudentById = (req, res) => __awaiter(void 0, void 0, void 0, function*
 exports.getStudentById = getStudentById;
 // Create a new student
 const createStudent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { username, name, surname, email, phone, address, img, bloodType, sex, parentId, classId, birthday, } = req.body;
+    const { username, name, surname, email, phone, address, img, bloodType, sex, parentId, classId, birthday, subjectIds = [], // ✅ include subjectIds
+     } = req.body;
     try {
         // Check if the username already exists
         const existingStudent = yield prisma.student.findUnique({
@@ -82,6 +83,17 @@ const createStudent = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 return;
             }
         }
+        // Validate subjects
+        const validSubjectIds = yield prisma.subject.findMany({
+            where: {
+                id: { in: subjectIds },
+            },
+            select: { id: true },
+        });
+        if (validSubjectIds.length !== subjectIds.length) {
+            res.status(400).json({ error: "Some subjectIds are invalid" });
+            return;
+        }
         const studentData = {
             id: crypto.randomUUID(),
             username,
@@ -94,22 +106,23 @@ const createStudent = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             bloodType,
             sex: sex.toUpperCase(),
             birthday: parsedBirthday,
+            subject: {
+                connect: validSubjectIds.map((s) => ({ id: s.id })), // ✅ connect subjects
+            },
         };
-        // Add only if the related entity exists
         if (parentData)
             studentData.parent = { connect: { id: parentId } };
         if (classData)
             studentData.class = { connect: { id: classId } };
         const student = yield prisma.student.create({
             data: studentData,
+            include: { subject: true, class: true, parent: true },
         });
         res.status(201).json(student);
-        return;
     }
     catch (error) {
         console.error(error);
         res.status(500).json({ error: "Failed to create student" });
-        return;
     }
 });
 exports.createStudent = createStudent;

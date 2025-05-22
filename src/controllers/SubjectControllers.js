@@ -26,7 +26,7 @@ const createSubject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 exports.createSubject = createSubject;
 const getAllSubjects = (_req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const subjects = yield prisma.subject.findMany({ include: { teachers: true, lessons: true } });
+        const subjects = yield prisma.subject.findMany({ include: { teachers: true, lessons: true, exams: true } });
         res.json(subjects);
     }
     catch (error) {

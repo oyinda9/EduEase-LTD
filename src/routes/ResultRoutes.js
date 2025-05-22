@@ -1,10 +1,15 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
+const express_1 = require("express");
 const ResultController_1 = require("../controllers/ResultController");
-const router = express_1.default.Router();
-router.post("/", ResultController_1.createResult);
+const router = (0, express_1.Router)();
+router.post('/', ResultController_1.createResult);
+router.get('/', ResultController_1.getAllResults);
+router.get('/:id', ResultController_1.getResultById);
+// For ALL students' cumulative results
+router.get('/results/all', ResultController_1.getAllStudentsCummulatedResults); // More specific, for ALL
+router.get('/results/:id', ResultController_1.getOneStudentsCummulatedResults); // Specific student
+router.get('/studentid/:id', ResultController_1.getResultsByStudentId);
+router.put('/:id', ResultController_1.updateResult);
+router.delete('/:id', ResultController_1.deleteResult);
 exports.default = router;

@@ -7,6 +7,7 @@ const router = (0, express_1.Router)();
 router.post("/", authMiddleware_1.authenticateAdmin, authMiddleware_1.authorizeAdmin, authMiddleware_1.authorizeTeacherCreation, TeachersControllers_1.createTeacher);
 router.get("/", TeachersControllers_1.getTeachers, authMiddleware_1.authenticateAdmin, authMiddleware_1.authorizeAdmin, authMiddleware_1.authorizeTeacherCreation);
 router.get("/:id", TeachersControllers_1.getTeacherById, authMiddleware_1.authenticateAdmin, authMiddleware_1.authorizeAdmin);
+router.post("/assign-classes-subjects", authMiddleware_1.authenticateAdmin, authMiddleware_1.authorizeAdmin, authMiddleware_1.authorizeTeacherCreation, TeachersControllers_1.assignClassesAndSubjectsToTeacher);
 router.put("/:id", authMiddleware_1.authenticateAdmin, authMiddleware_1.authorizeAdmin, authMiddleware_1.authorizeTeacherCreation, TeachersControllers_1.updateTeacher);
 router.delete("/:id", authMiddleware_1.authenticateAdmin, authMiddleware_1.authorizeAdmin, authMiddleware_1.authorizeTeacherCreation, TeachersControllers_1.deleteTeacher);
 exports.default = router;

@@ -9,7 +9,7 @@ import {
 import {
   authenticateAdmin,
   authorizeAdmin,
-  authorizesStudentCreation,
+  authorizeStudentCreation,
 } from "../middleware/authMiddleware";
 
 const router = express.Router();
@@ -21,7 +21,7 @@ router.post(
   "/",
   authenticateAdmin,
   authorizeAdmin,
-  authorizesStudentCreation,
+  authorizeStudentCreation,
   createStudent
 );
 router.put("/:id", updateStudent);
