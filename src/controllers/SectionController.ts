@@ -5,20 +5,33 @@ const prisma = new PrismaClient();
 
 export const createSection = async (req: Request, res: Response) => {
   const { name, schoolId } = req.body;
+
   try {
     const section = await prisma.section.create({
       data: {
         name,
         school: { connect: { id: schoolId } },
       },
+      include: {
+        school: true,
+      },
     });
-    res.status(201).json(section);
+
+    res.status(201).json({
+      message: "Section created successfully",
+      schoolName: section.school?.name,
+      section,
+    });
   } catch (error: any) {
-    res.status(400).json({ error: "Failed to create section", details: error.message });
+    console.error("Error creating section:", error);
+    res.status(400).json({
+      error: "Failed to create section",
+      details: error.message,
+    });
   }
 };
 
-//get all sections with classes and student count 
+//get all sections with classes and student count
 export const getAllSectionsAndClasses = async (req: Request, res: Response) => {
   try {
     const sections = await prisma.section.findMany({
@@ -34,15 +47,18 @@ export const getAllSectionsAndClasses = async (req: Request, res: Response) => {
     });
 
     // Build custom response
-    const response = sections.map(section => {
-      const totalStudents = section.classes.reduce((sum, cls) => sum + cls._count.students, 0);
+    const response = sections.map((section) => {
+      const totalStudents = section.classes.reduce(
+        (sum, cls) => sum + cls._count.students,
+        0
+      );
 
       return {
         sectionId: section.id,
         sectionName: section.name,
         numberOfClasses: section.classes.length,
         totalStudentsInSection: totalStudents,
-        classes: section.classes.map(cls => ({
+        classes: section.classes.map((cls) => ({
           classId: cls.id,
           className: cls.name,
           numberOfStudents: cls._count.students,
@@ -54,10 +70,11 @@ export const getAllSectionsAndClasses = async (req: Request, res: Response) => {
       message: "Sections fetched successfully",
       sections: response,
     });
-
   } catch (error: any) {
     console.error("Error fetching sections:", error);
-    res.status(500).json({ error: "Failed to fetch sections", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Failed to fetch sections", details: error.message });
   }
 };
 //get all sections
