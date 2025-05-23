@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { connect } from "http2";
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 const prisma = new PrismaClient();
 
@@ -24,7 +24,7 @@ export const createTeacher = async (
       subjectIds,
       lessonIds,
       classIds,
-    schoolId
+      schoolId,
     } = req.body;
 
     // Check if the username already exists
@@ -68,13 +68,39 @@ export const createTeacher = async (
         ...(classIds && classIds.length > 0
           ? { classes: { connect: classIds.map((id: string) => ({ id })) } }
           : {}),
-          school: {
-    connect: { id: schoolId }, 
-  },
+        school: {
+          connect: { id: schoolId },
+        },
+      },
+      include: {
+        school: true,
+        subjects: true,
+        lessons: true,
+        classes: true,
       },
     });
 
-    res.status(201).json(teacher);
+    res.status(201).json({
+      message: "Teacher created successfully",
+      teacher: {
+        id: teacher.id,
+        username: teacher.username,
+        name: teacher.name,
+        surname: teacher.surname,
+        email: teacher.email,
+        phone: teacher.phone,
+        address: teacher.address,
+        img: teacher.img,
+        bloodType: teacher.bloodType,
+        sex: teacher.sex,
+        birthday: teacher.birthday,
+        schoolId: teacher.schoolId,
+        schoolName: teacher.school?.name || null,
+        subjects: teacher.subjects,
+        lessons: teacher.lessons,
+        classes: teacher.classes,
+      },
+    });
   } catch (error) {
     console.error("Error creating teacher:", error);
     res.status(500).json({ error: "Failed to create teacher" });
@@ -97,11 +123,12 @@ export const getTeachers = async (req: Request, res: Response) => {
         classes: {
           select: {
             id: true,
-            name: true, // Only fetch the class ID and name
+            name: true,
           },
         },
-        subjects: true, // Fetch all subjects taught by the teacher
-        lessons: true, // Fetch all lessons taken by the teacher
+        subjects: true,
+        lessons: true,
+        school:true
       },
     });
 
@@ -133,11 +160,12 @@ export const getTeacherById = async (
       include: {
         classes: {
           include: {
-            students: true, // Assuming a Class model has a students relation
+            students: true,
           },
         },
-        subjects: true, // Fetching subjects taught by the teacher
-        lessons: true, // Fetching lessons taken by the teacher
+        subjects: true, 
+        lessons: true, 
+        school:true
       },
     });
     if (!teacher) {
@@ -154,21 +182,24 @@ export const getTeacherById = async (
 };
 
 // ✅ Update a Teacher
-export const updateTeacher = async (req: Request, res: Response):Promise<void> => {
+export const updateTeacher = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
 
     // Ensure the teacher exists
     const existingTeacher = await prisma.teacher.findUnique({ where: { id } });
     if (!existingTeacher) {
-       res.status(404).json({ error: "Teacher not found" });
-       return
+      res.status(404).json({ error: "Teacher not found" });
+      return;
     }
 
     // Validate req.body fields
     if (!req.body.name || !req.body.email) {
-       res.status(400).json({ error: "Missing required fields" });
-       return
+      res.status(400).json({ error: "Missing required fields" });
+      return;
     }
 
     // Update teacher
@@ -182,8 +213,8 @@ export const updateTeacher = async (req: Request, res: Response):Promise<void> =
     console.error("Error updating teacher:", error);
 
     if (error instanceof PrismaClientKnownRequestError) {
-      if ((error as PrismaClientKnownRequestError).code === 'P2025') {
-        res.status(404).json({ error: 'Teacher not found' });
+      if ((error as PrismaClientKnownRequestError).code === "P2025") {
+        res.status(404).json({ error: "Teacher not found" });
         return;
       }
     }
@@ -191,7 +222,7 @@ export const updateTeacher = async (req: Request, res: Response):Promise<void> =
     res.status(500).json({ error: "Failed to update teacher", details: error });
   }
 };
- 
+
 // ✅ Delete a Teacher
 export const deleteTeacher = async (req: Request, res: Response) => {
   try {
@@ -202,7 +233,6 @@ export const deleteTeacher = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to delete teacher" });
   }
 };
-
 
 export const assignClassesAndSubjectsToTeacher = async (
   req: Request,
@@ -222,10 +252,11 @@ export const assignClassesAndSubjectsToTeacher = async (
       where: { id: teacherId },
       data: {
         // Add new classes to teacher (does not remove existing classes)
-        classes: {connect: classes?.map((classIds: any) => ({
-          id: classIds,
-        })),
-},
+        classes: {
+          connect: classes?.map((classIds: any) => ({
+            id: classIds,
+          })),
+        },
         // Add new subjects to teacher (does not remove existing subjects)
         subjects: {
           connect: subjectIds?.map((subjectId: string) => ({
@@ -241,7 +272,8 @@ export const assignClassesAndSubjectsToTeacher = async (
     });
   } catch (error) {
     console.error("Error assigning classes and subjects:", error);
-    res.status(500).json({ error: "Failed to assign classes and subjects to teacher" });
+    res
+      .status(500)
+      .json({ error: "Failed to assign classes and subjects to teacher" });
   }
 };
-

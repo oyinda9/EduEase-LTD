@@ -7,8 +7,7 @@ const prisma = new PrismaClient();
 export const getAllStudents = async (req: Request, res: Response) => {
   try {
     const students = await prisma.student.findMany({
-    
-      include: { parent: true, class: true, subject:true },
+      include: { parent: true, class: true, subject: true },
     });
     res.json(students);
   } catch (error) {
@@ -17,16 +16,19 @@ export const getAllStudents = async (req: Request, res: Response) => {
 };
 
 // Get a student by ID
-export const getStudentById = async (req: Request, res: Response) : Promise<void>=> {
+export const getStudentById = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   try {
     const student = await prisma.student.findUnique({
       where: { id },
-      include: { parent: true, class: true,subject:true},
+      include: { parent: true, class: true, subject: true },
     });
     if (!student) {
-       res.status(404).json({ error: "Student not found" });
-       return
+      res.status(404).json({ error: "Student not found" });
+      return;
     }
     res.json(student);
   } catch (error) {
@@ -53,7 +55,8 @@ export const createStudent = async (
     parentId,
     classId,
     birthday,
-    subjectIds = [], // ✅ include subjectIds
+    subjectIds = [],
+    schoolId,
   } = req.body;
 
   try {
@@ -121,8 +124,11 @@ export const createStudent = async (
       bloodType,
       sex: sex.toUpperCase(),
       birthday: parsedBirthday,
+      school: {
+        connect: { id: schoolId },
+      },
       subject: {
-        connect: validSubjectIds.map((s:any) => ({ id: s.id })), // ✅ connect subjects
+        connect: validSubjectIds.map((s: any) => ({ id: s.id })), 
       },
     };
 
@@ -131,16 +137,15 @@ export const createStudent = async (
 
     const student = await prisma.student.create({
       data: studentData,
-      include: { subject: true, class: true, parent: true },
+      include: { subject: true, class: true, parent: true,school:true },
     });
 
-    res.status(201).json(student);
+    res.status(201).json({message:"student created sucessfully",student});
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to create student" });
   }
 };
-
 
 // Update a student
 export const updateStudent = async (req: Request, res: Response) => {
