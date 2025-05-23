@@ -4,7 +4,7 @@ import {login, registerAdmin,  registerSuperAdmin} from "../controllers/authCont
 const router = express.Router();
 
 // Define routes
-router.post("/superadmin/login", registerSuperAdmin);
+router.post("/superadmin/register", registerSuperAdmin);
 router.post("/register", registerAdmin);
 router.post("/login", login);
 // router.post("/loginUser", loginUser);
