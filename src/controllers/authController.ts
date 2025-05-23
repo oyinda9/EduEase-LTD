@@ -1,14 +1,61 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { PrismaClient ,Role} from "@prisma/client";
-
-
+import { PrismaClient, Role } from "@prisma/client";
 import dotenv from "dotenv";
-
 dotenv.config();
 const prisma = new PrismaClient();
 const SECRET_KEY = process.env.JWT_SECRET || "your_secret_key";
+
+// Register SuperAdmin
+export const registerSuperAdmin = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { username, email, password } = req.body;
+
+    // Check required fields
+    if (!username || !email || !password) {
+      res
+        .status(400)
+        .json({ error: "Username, email, and password are required" });
+      return;
+    }
+
+    // Check if username or email already exists
+    const existingUser = await prisma.superAdmin.findFirst({
+      where: {
+        OR: [{ username }, { email }],
+      },
+    });
+    if (existingUser) {
+      res.status(400).json({ error: "Username or email already exists" });
+      return;
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create the superadmin
+    const superAdmin = await prisma.superAdmin.create({
+      data: {
+        username,
+        email,
+        password: hashedPassword,
+        // role defaults to SUPERADMIN in schema
+      },
+    });
+
+    res.status(201).json({
+      message: "SuperAdmin created successfully",
+      superAdminId: superAdmin.id,
+    });
+  } catch (error) {
+    console.error("Error registering SuperAdmin:", error);
+    res.status(500).json({ error: "Failed to register SuperAdmin" });
+  }
+};
 
 // Register Admin
 export const registerAdmin = async (
@@ -16,11 +63,22 @@ export const registerAdmin = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { username, password } = req.body;
+    const { username, password, schoolId } = req.body;
 
-    if (!username || !password) {
-      res.status(400).json({ error: "Username and password required" });
-      return; // Ensure the function exits after sending the response
+    if (!username || !password || !schoolId) {
+      res
+        .status(400)
+        .json({ error: "Username, password and schoolId are required" });
+      return;
+    }
+
+    // Check if school exists (optional but recommended)
+    const schoolExists = await prisma.school.findUnique({
+      where: { id: schoolId },
+    });
+    if (!schoolExists) {
+      res.status(404).json({ error: "School not found" });
+      return;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -29,6 +87,7 @@ export const registerAdmin = async (
       data: {
         username,
         password: hashedPassword,
+        schoolId,
       },
     });
 
@@ -43,7 +102,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { identifier, password, surname } = req.body;
 
-    // Ensure that identifier (either username or email) is provided
     if (!identifier) {
       res.status(400).json({ error: "Username or email is required" });
       return;
@@ -51,69 +109,64 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     let user: any;
     let role: Role | undefined;
+    let schoolId: string | null = null;
 
-    // For Admins, we check the username only
+    // If no "@" in identifier, assume username for admin or superadmin
     if (!identifier.includes("@")) {
-      // Login using username for Admins only
-      user = await prisma.admin.findUnique({ where: { username: identifier } });
+      // Find admin (or superadmin) by username
+      user = await prisma.admin.findUnique({
+        where: { username: identifier },
+        include: { school: true }, // include school relation to get schoolId
+      });
+
       if (user) {
-        role = Role.ADMIN; // Assign role for admin
+        role = user.role; // this could be ADMIN or SUPERADMIN
+        schoolId = user.schoolId || null;
       }
     } else {
-      // Login using email and surname (for non-admins)
+      // Login non-admins by email + surname
+
       if (!surname) {
-        res
-          .status(400)
-          .json({ error: "Surname is required for non-admin login" });
+        res.status(400).json({ error: "Surname is required for non-admin login" });
         return;
       }
 
-      // Check for Teacher with matching email and surname
       user = await prisma.teacher.findFirst({
-        where: {
-          email: identifier,
-          surname: surname,
-        },
+        where: { email: identifier, surname },
       });
       if (user) {
         role = Role.TEACHER;
+        schoolId = user.schoolId || null;
       }
 
-      // Check for Student with matching email and surname
       if (!user) {
         user = await prisma.student.findFirst({
-          where: {
-            email: identifier,
-            surname: surname,
-          },
+          where: { email: identifier, surname },
         });
         if (user) {
           role = Role.STUDENT;
+          schoolId = user.schoolId || null;
         }
       }
 
-      // Check for User with matching email and surname (Parent in this case)
       if (!user) {
         user = await prisma.parent.findFirst({
-          where: {
-            email: identifier,
-            surname: surname,
-          },
+          where: { email: identifier, surname },
         });
         if (user) {
-          role = Role.USER; // Non-admin role for parent
+          role = Role.USER;
+          schoolId = user.schoolId || null;
         }
       }
     }
 
-    // If user is not found
     if (!user || !role) {
       res.status(404).json({ error: "User not found" });
       return;
     }
 
-    // Admins require password validation
-    if (role === Role.ADMIN) {
+    // Validate password for admins and superadmins
+    if (role === Role.ADMIN || role === Role.SUPERADMIN) {
       if (!password) {
         res.status(400).json({ error: "Password is required for admin login" });
         return;
@@ -126,22 +179,20 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
-    // Generate JWT token
+    // Generate JWT including schoolId, user id and role
     const token = jwt.sign(
-      { id: user.id, role },
+      { id: user.id, role, schoolId },
       process.env.JWT_SECRET || "secret",
-      {
-        expiresIn: "1d",
-      }
+      { expiresIn: "1d" }
     );
 
-    // Pass the token in the Authorization header
     res.setHeader("Authorization", `Bearer ${token}`);
 
     res.status(200).json({
       message: "Login successful",
       token,
       role,
+      schoolId,
       user: {
         id: user.id,
         username: user.username || null,
@@ -150,7 +201,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         email: user.email || null,
         phone: user.phone || null,
         address: user.address || null,
-       
       },
     });
   } catch (error) {

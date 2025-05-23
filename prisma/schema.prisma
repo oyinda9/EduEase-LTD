@@ -3,49 +3,44 @@ generator client {
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  directUrl  = env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-enum UserSex {
-  MALE
-  FEMALE
-}
 
-enum Role {
-  ADMIN
-  TEACHER
-  STUDENT
-  USER
-}
-
-enum Day {
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
+model SuperAdmin {
+  id       String @id @default(uuid())
+  username String @unique
+  email    String @unique
+  password String
+  role     Role   @default(SUPERADMIN)
+  createdAt DateTime @default(now())
 }
 
 model Admin {
   id       String @id @default(uuid())
   username String @unique
-  password String
   role     Role   @default(ADMIN)
+  password String
+  school    School   @relation(fields: [schoolId], references: [id])
+  schoolId  String
+  createdAt DateTime @default(now())
 }
 
 model School {
-  id             String         @id @default(uuid())
-  name           String         @unique
-  address        String
-  logo           String?
-  createdAt      DateTime       @default(now())
-  students       Student[]
-  teachers       Teacher[]
-  parents        Parent[]
-  classes        Class[]
-  announcements  Announcement[]
+  id            String         @id @default(uuid())
+  name          String         @unique
+  address       String
+  logo          String?
+  createdAt     DateTime       @default(now())
+  announcements Announcement[]
+  classes       Class[]
+  parents       Parent[]
+  students      Student[]
+  teachers      Teacher[]
+
+  Admin Admin[]
 }
 
 model Student {
@@ -60,108 +55,101 @@ model Student {
   bloodType   String
   sex         UserSex
   createdAt   DateTime     @default(now())
+  parentId    String?
+  classId     Int
   birthday    DateTime
   role        Role         @default(STUDENT)
-  classId     Int
-  parentId    String?
   schoolId    String
-
-  class       Class        @relation(fields: [classId], references: [id])
-  parent      Parent?      @relation(fields: [parentId], references: [id])
-  school      School       @relation(fields: [schoolId], references: [id])
   attendances Attendance[]
   payments    Payment[]
   results     Result[]
+  class       Class        @relation(fields: [classId], references: [id])
+  parent      Parent?      @relation(fields: [parentId], references: [id])
+  school      School       @relation(fields: [schoolId], references: [id])
   subject     Subject[]    @relation("StudentSubjects")
 }
 
 model Teacher {
+  id                      String    @id @default(uuid())
+  username                String    @unique
+  name                    String
+  surname                 String
+  email                   String?   @unique
+  phone                   String?   @unique
+  address                 String
+  img                     String?
+  bloodType               String
+  sex                     UserSex
+  createdAt               DateTime  @default(now())
+  birthday                DateTime
+  role                    Role      @default(TEACHER)
+  extraLessonContact      String?
+  isVisibleOnExtraLessons Boolean   @default(false)
+  schoolId                String
+  classes                 Class[]
+  lessons                 Lesson[]
+  school                  School    @relation(fields: [schoolId], references: [id])
+  subjects                Subject[] @relation("SubjectToTeacher")
+}
+
+model Parent {
   id        String    @id @default(uuid())
   username  String    @unique
   name      String
   surname   String
   email     String?   @unique
-  phone     String?   @unique
+  phone     String    @unique
   address   String
-  img       String?
-  bloodType String
-  sex       UserSex
-  birthday  DateTime
   createdAt DateTime  @default(now())
-  role      Role      @default(TEACHER)
-  isVisibleOnExtraLessons Boolean @default(false)
-  extraLessonContact      String?
-
+  role      Role      @default(USER)
   schoolId  String
   school    School    @relation(fields: [schoolId], references: [id])
-  classes   Class[]
-  lessons   Lesson[]
-  subjects  Subject[] @relation("SubjectToTeacher")
-}
-
-model Parent {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  name      String
-  surname   String
-  email     String?  @unique
-  phone     String   @unique
-  address   String
-  createdAt DateTime @default(now())
-  role      Role     @default(USER)
-
-  schoolId  String
-  school    School   @relation(fields: [schoolId], references: [id])
   payments  Payment[]
   students  Student[]
 }
 
 model Class {
-  id           Int            @id @default(autoincrement())
-  name         String
-  capacity     Int
-  supervisorId String?
-  schoolId     String
-
-  supervisor   Teacher?       @relation(fields: [supervisorId], references: [id])
-  school       School         @relation(fields: [schoolId], references: [id])
+  id            Int            @id @default(autoincrement())
+  name          String
+  capacity      Int
+  supervisorId  String?
+  schoolId      String
   announcements Announcement[]
-  lessons      Lesson[]
-  students     Student[]
+  school        School         @relation(fields: [schoolId], references: [id])
+  supervisor    Teacher?       @relation(fields: [supervisorId], references: [id])
+  lessons       Lesson[]
+  students      Student[]
 }
 
 model Subject {
-  id        Int       @id @default(autoincrement())
-  name      String
-
-  exams     Exam[]
-  lessons   Lesson[]
-  Result    Result[]
-  students  Student[] @relation("StudentSubjects")
-  teachers  Teacher[] @relation("SubjectToTeacher")
+  id       Int       @id @default(autoincrement())
+  name     String
+  exams    Exam[]
+  lessons  Lesson[]
+  Result   Result[]
+  students Student[] @relation("StudentSubjects")
+  teachers Teacher[] @relation("SubjectToTeacher")
 }
 
 model Lesson {
-  id         Int        @id @default(autoincrement())
-  name       String
-  day        Day
-  startTime  DateTime
-  endTime    DateTime
-  subjectId  Int
-  classId    Int
-  teacherId  String
-
-  subject    Subject    @relation(fields: [subjectId], references: [id])
-  class      Class      @relation(fields: [classId], references: [id])
-  teacher    Teacher    @relation(fields: [teacherId], references: [id])
+  id          Int          @id @default(autoincrement())
+  name        String
+  day         Day
+  startTime   DateTime
+  endTime     DateTime
+  subjectId   Int
+  classId     Int
+  teacherId   String
   assignments Assignment[]
+  class       Class        @relation(fields: [classId], references: [id])
+  subject     Subject      @relation(fields: [subjectId], references: [id])
+  teacher     Teacher      @relation(fields: [teacherId], references: [id])
 }
 
 model Exam {
   id        Int      @id @default(autoincrement())
-  subjectId Int
   score     Int
-
+  subjectId Int
   subject   Subject  @relation(fields: [subjectId], references: [id])
   results   Result[]
 }
@@ -172,7 +160,6 @@ model Assignment {
   startDate DateTime
   dueDate   DateTime
   lessonId  Int
-
   lesson    Lesson   @relation(fields: [lessonId], references: [id])
 }
 
@@ -180,18 +167,16 @@ model Result {
   id           Int     @id @default(autoincrement())
   score        Float
   examId       Int?
-  examScore    Int?
-  totalScore   Float?
-  averageScore Float?
-  assignment   Float   @default(0)
-  classwork    Float   @default(0)
-  midterm      Float   @default(0)
-  attendance   Float   @default(0)
-  aiSuggestion String?
-
   studentId    String
   subjectId    Int
-
+  assignment   Float   @default(0)
+  attendance   Float   @default(0)
+  classwork    Float   @default(0)
+  midterm      Float   @default(0)
+  averageScore Float?
+  examScore    Int?
+  totalScore   Float?
+  aiSuggestion String?
   exam         Exam?   @relation(fields: [examId], references: [id])
   student      Student @relation(fields: [studentId], references: [id])
   subject      Subject @relation(fields: [subjectId], references: [id])
@@ -202,7 +187,6 @@ model Attendance {
   date      DateTime
   present   Boolean
   studentId String
-
   student   Student  @relation(fields: [studentId], references: [id])
 }
 
@@ -220,7 +204,6 @@ model Announcement {
   date        DateTime
   classId     Int?
   schoolId    String?
-
   class       Class?   @relation(fields: [classId], references: [id])
   school      School?  @relation(fields: [schoolId], references: [id])
 }
@@ -233,7 +216,27 @@ model Payment {
   receiptUrl String
   verified   Boolean  @default(false)
   createdAt  DateTime @default(now())
-
-  student    Student  @relation(fields: [studentId], references: [id])
   parent     Parent   @relation(fields: [parentId], references: [id])
+  student    Student  @relation(fields: [studentId], references: [id])
+}
+
+enum UserSex {
+  MALE
+  FEMALE
+}
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  TEACHER
+  STUDENT
+  USER
+}
+
+enum Day {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
 }

@@ -69,7 +69,7 @@ export const createTeacher = async (
           ? { classes: { connect: classIds.map((id: string) => ({ id })) } }
           : {}),
           school: {
-    connect: { id: schoolId }, // Make sure you have schoolId available
+    connect: { id: schoolId }, 
   },
       },
     });
