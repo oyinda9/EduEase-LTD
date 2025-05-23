@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+
 export const getSchoolOverview = async (
   req: Request,
   res: Response
@@ -34,7 +35,7 @@ export const getSchoolOverview = async (
       return;
     }
 
-    // Calculate total students per section
+    // Calculate total students per section and count classes and subjects
     const sections = school.Section.map((section) => {
       const totalStudentsInSection = section.classes.reduce(
         (total, classItem) => total + classItem.students.length,
@@ -44,6 +45,7 @@ export const getSchoolOverview = async (
       return {
         ...section,
         totalStudents: totalStudentsInSection,
+
         classes: section.classes.map((classItem) => ({
           ...classItem,
           studentCount: classItem.students.length,
@@ -51,11 +53,32 @@ export const getSchoolOverview = async (
       };
     });
 
+    // Calculate totals for the entire school
+    const totalParents = school.parents.length;
+    const totalTeachers = school.teachers.length;
+    const totalAdmins = school.Admin.length;
+    const totalStudents = school.students.length;
+    const totalSections = school.Section.length;
+
+    // Sum all classes across all sections
+    const totalClasses = school.Section.reduce(
+      (total, section) => total + section.classes.length,
+      0
+    );
+
     res.status(200).json({
       message: "School overview fetched successfully",
       school: {
         ...school,
         sections,
+        totals: {
+          parents: totalParents,
+          teachers: totalTeachers,
+          admins: totalAdmins,
+          students: totalStudents,
+          sections: totalSections,
+          classes: totalClasses,
+        },
       },
     });
   } catch (error) {
