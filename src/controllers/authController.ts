@@ -89,6 +89,9 @@ export const registerAdmin = async (
         password: hashedPassword,
         schoolId,
       },
+      include: {
+        school: true, // This includes the school details in the response
+      },
     });
 
     res.status(201).json({ message: "Admin registered", admin });
@@ -127,7 +130,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       // Login non-admins by email + surname
 
       if (!surname) {
-        res.status(400).json({ error: "Surname is required for non-admin login" });
+        res
+          .status(400)
+          .json({ error: "Surname is required for non-admin login" });
         return;
       }
 
