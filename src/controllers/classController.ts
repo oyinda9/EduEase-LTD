@@ -7,7 +7,7 @@ export class ClassController {
   // ✅ Create a new class
   static async createClass(req: Request, res: Response): Promise<void> {
     try {
-      const { name, capacity, supervisorId } = req.body;
+      const { name, capacity, supervisorId ,sectionId  } = req.body;
 
       if (!name || !capacity) {
         res.status(400).json({ error: "Name and capacity are required" });
@@ -32,7 +32,9 @@ export class ClassController {
         data: {
           name,
           capacity,
-          ...supervisorData, // Connect supervisor only if provided
+          
+          ...supervisorData, 
+           section: { connect: { id: sectionId } },
         } as Prisma.ClassCreateInput, // Ensuring correct Prisma type
       });
 

@@ -8,21 +8,20 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-
 model SuperAdmin {
-  id       String @id @default(uuid())
-  username String @unique
-  email    String @unique
-  password String
-  role     Role   @default(SUPERADMIN)
+  id        String   @id @default(uuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      Role     @default(SUPERADMIN)
   createdAt DateTime @default(now())
 }
 
 model Admin {
-  id       String @id @default(uuid())
-  username String @unique
-  role     Role   @default(ADMIN)
-  password String
+  id        String   @id @default(uuid())
+  username  String   @unique
+  role      Role     @default(ADMIN)
+  password  String
   school    School   @relation(fields: [schoolId], references: [id])
   schoolId  String
   createdAt DateTime @default(now())
@@ -39,8 +38,8 @@ model School {
   parents       Parent[]
   students      Student[]
   teachers      Teacher[]
-
   Admin Admin[]
+  Section Section[]
 }
 
 model Student {
@@ -119,6 +118,17 @@ model Class {
   supervisor    Teacher?       @relation(fields: [supervisorId], references: [id])
   lessons       Lesson[]
   students      Student[]
+  section       Section        @relation(fields: [sectionId], references: [id])
+  sectionId     String
+}
+
+model Section {
+  id        String   @id @default(uuid())
+  name      String // e.g. "Nursery", "Primary", "Secondary", "Creche"
+  school    School   @relation(fields: [schoolId], references: [id])
+  schoolId  String
+  classes   Class[]
+  createdAt DateTime @default(now())
 }
 
 model Subject {

@@ -16,8 +16,9 @@ import AuthRoutes from "./routes/AuthRoutes";
 import subjectRoute from "./routes/subjectRoute";
 import attendRoute from "./routes/attendRoute";
 import ExamRoutes from "./routes/ExamRoutes";
-import PaymentRoute from  "./routes/PaymentRoute"
-import SchoolRoutes from "./routes/SchoolsRoutes"
+import PaymentRoute from  "./routes/PaymentRoute";
+import SchoolRoutes from "./routes/SchoolsRoutes";
+import sectionRoutes from "./routes/sectionRoutes"
 
 
 const prisma = new PrismaClient();
@@ -41,6 +42,7 @@ app.use('/exam', ExamRoutes);
 app.use('/payment',PaymentRoute)
 app.use("/auth", AuthRoutes);
 app.use("/school",SchoolRoutes)
+app.use("/section",sectionRoutes)
 // Health check endpoint
 app.get("/", (req: Request, res: Response) => {
   res.send("EduEase backend is running");
