@@ -115,20 +115,33 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     let schoolId: string | null = null;
     let schoolName: string | null = null;
 
-    // Admin or Superadmin login using username
-    if (!identifier.includes("@")) {
+    // =============== SUPERADMIN LOGIN (username or email) ===============
+    user = await prisma.superAdmin.findFirst({
+      where: {
+        OR: [{ username: identifier }, { email: identifier }],
+      },
+    });
+
+    if (user) {
+      role = Role.SUPERADMIN;
+    }
+
+    // =============== ADMIN LOGIN (username only) ===============
+    if (!user && !identifier.includes("@")) {
       user = await prisma.admin.findUnique({
         where: { username: identifier },
         include: { school: true },
       });
 
       if (user) {
-        role = user.role;
+        role = Role.ADMIN;
         schoolId = user.schoolId || null;
         schoolName = user.school?.name || null;
       }
-    } else {
-      // Non-admin login using email and surname
+    }
+
+    // =============== TEACHER / STUDENT / PARENT LOGIN ===============
+    if (!user && identifier.includes("@")) {
       if (!surname) {
         res.status(400).json({ error: "Surname is required for non-admin login" });
         return;
@@ -169,12 +182,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
+    // =============== Not Found ===============
     if (!user || !role) {
       res.status(404).json({ error: "User not found" });
       return;
     }
 
-    // Password validation for admin/superadmin
+    // =============== Password Validation ===============
     if (role === Role.ADMIN || role === Role.SUPERADMIN) {
       if (!password) {
         res.status(400).json({ error: "Password is required for admin login" });
@@ -188,7 +202,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
-    // Generate JWT token
+    // =============== JWT Token ===============
     const token = jwt.sign(
       { id: user.id, role, schoolId },
       process.env.JWT_SECRET || "secret",
@@ -218,4 +232,5 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ error: "Login failed" });
   }
 };
+
 
