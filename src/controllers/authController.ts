@@ -113,54 +113,58 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     let user: any;
     let role: Role | undefined;
     let schoolId: string | null = null;
+    let schoolName: string | null = null;
 
-    // If no "@" in identifier, assume username for admin or superadmin
+    // Admin or Superadmin login using username
     if (!identifier.includes("@")) {
-      // Find admin (or superadmin) by username
       user = await prisma.admin.findUnique({
         where: { username: identifier },
-        include: { school: true }, // include school relation to get schoolId
+        include: { school: true },
       });
 
       if (user) {
-        role = user.role; // this could be ADMIN or SUPERADMIN
+        role = user.role;
         schoolId = user.schoolId || null;
+        schoolName = user.school?.name || null;
       }
     } else {
-      // Login non-admins by email + surname
-
+      // Non-admin login using email and surname
       if (!surname) {
-        res
-          .status(400)
-          .json({ error: "Surname is required for non-admin login" });
+        res.status(400).json({ error: "Surname is required for non-admin login" });
         return;
       }
 
       user = await prisma.teacher.findFirst({
         where: { email: identifier, surname },
+        include: { school: true },
       });
       if (user) {
         role = Role.TEACHER;
         schoolId = user.schoolId || null;
+        schoolName = user.school?.name || null;
       }
 
       if (!user) {
         user = await prisma.student.findFirst({
           where: { email: identifier, surname },
+          include: { school: true },
         });
         if (user) {
           role = Role.STUDENT;
           schoolId = user.schoolId || null;
+          schoolName = user.school?.name || null;
         }
       }
 
       if (!user) {
         user = await prisma.parent.findFirst({
           where: { email: identifier, surname },
+          include: { school: true },
         });
         if (user) {
           role = Role.USER;
           schoolId = user.schoolId || null;
+          schoolName = user.school?.name || null;
         }
       }
     }
@@ -170,7 +174,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Validate password for admins and superadmins
+    // Password validation for admin/superadmin
     if (role === Role.ADMIN || role === Role.SUPERADMIN) {
       if (!password) {
         res.status(400).json({ error: "Password is required for admin login" });
@@ -184,7 +188,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
-    // Generate JWT including schoolId, user id and role
+    // Generate JWT token
     const token = jwt.sign(
       { id: user.id, role, schoolId },
       process.env.JWT_SECRET || "secret",
@@ -198,6 +202,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       token,
       role,
       schoolId,
+      schoolName,
       user: {
         id: user.id,
         username: user.username || null,
@@ -213,3 +218,4 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ error: "Login failed" });
   }
 };
+
