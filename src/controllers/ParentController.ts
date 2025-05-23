@@ -50,7 +50,7 @@ export const createParent = async (req: Request, res: Response) => {
 export const getAllParents = async (req: Request, res: Response) => {
   try {
     const parents = await prisma.parent.findMany({
-      include: { students: true }, // Include children details
+      include: { students: true , school:true}, // Include children details
     });
 
     res.status(200).json(parents);
@@ -76,7 +76,8 @@ export const getParentById = async (
   try {
     const parent = await prisma.parent.findFirst({
       where: { id, schoolId },
-      include: { students: true },
+      include: { students: true , school:true},
+
     });
 
     if (!parent) {
